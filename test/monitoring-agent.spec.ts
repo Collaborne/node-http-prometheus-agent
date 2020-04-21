@@ -10,7 +10,7 @@ import https from 'https';
 import { register, Counter, labelValues } from 'prom-client';
 import forge from 'node-forge';
 
-import { wrapAgent } from '../src/monitoring-agent';
+import { wrapAgent, WrapAgentOptions } from '../src/monitoring-agent';
 
 function createTestHttpsServer(handler?: RequestListener): https.Server {
 	// Adapted from https://github.com/digitalbazaar/forge/blob/master/examples/create-cert.js
@@ -206,7 +206,10 @@ describe('monitoring-agent', () => {
 						res.end();
 					}, host);
 					try {
-						await requestUrl(baseUrl, {agent: wrapAgent(agent, metric, {label1: 'dummy'})});
+						const wrapAgentOptions: WrapAgentOptions = {
+							extraLabels: {label1: 'dummy'},
+						};
+						await requestUrl(baseUrl, {agent: wrapAgent(agent, metric, wrapAgentOptions)});
 						expect(getCounterValue(metric, {status: '200', label1: 'dummy'}).value).to.be.equal(1);
 					} finally {
 						finish();
