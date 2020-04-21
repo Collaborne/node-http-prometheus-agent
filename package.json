@@ -32,7 +32,8 @@
   "dependencies": {
     "@log4js-node/log4js-api": "^1.0.2",
     "@types/node-forge": "^0.9.3",
-    "prom-client": "^11.5.3"
+    "prom-client": "^11.5.3",
+    "url-value-parser": "^2.0.1"
   },
   "devDependencies": {
     "@types/chai": "^4.2.11",

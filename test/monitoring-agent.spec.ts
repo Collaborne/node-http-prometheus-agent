@@ -200,6 +200,35 @@ describe('monitoring-agent', () => {
 						finish();
 					}
 				});
+				it(`normalizes path labels in ${protocol} requests`, async () => {
+					const {baseUrl, finish} = await createServer((req, res) => {
+						res.statusCode = 200;
+						res.end();
+					}, host);
+					try {
+						await requestUrl(`${baseUrl}/path/394838`, {agent: wrapAgent(agent, metric)});
+						expect(getCounterValue(metric, {status: '200'}).labels).to.deep.include({path: '/path/#val'});
+					} finally {
+						finish();
+					}
+				});
+				it(`normalizes path labels in ${protocol} requests through normalizePath function`, async () => {
+					const {baseUrl, finish} = await createServer((req, res) => {
+						res.statusCode = 200;
+						res.end();
+					}, host);
+					try {
+						const wrapAgentOptions: WrapAgentOptions = {
+							normalizePath(req) {
+								return '/normalized';
+							},
+						};
+						await requestUrl(`${baseUrl}/path/394838`, {agent: wrapAgent(agent, metric, wrapAgentOptions)});
+						expect(getCounterValue(metric, {status: '200'}).labels).to.deep.include({path: '/normalized'});
+					} finally {
+						finish();
+					}
+				});
 				it(`adds extra labels in ${protocol} requests`, async () => {
 					const {baseUrl, finish} = await createServer((req, res) => {
 						res.statusCode = 200;
