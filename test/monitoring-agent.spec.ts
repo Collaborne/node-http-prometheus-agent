@@ -200,17 +200,32 @@ describe('monitoring-agent', () => {
 						finish();
 					}
 				});
-				it(`normalizes path labels in ${protocol} requests`, async () => {
-					const {baseUrl, finish} = await createServer((req, res) => {
-						res.statusCode = 200;
-						res.end();
-					}, host);
-					try {
-						await requestUrl(`${baseUrl}/path/394838`, {agent: wrapAgent(agent, metric)});
-						expect(getCounterValue(metric, {status: '200'}).labels).to.deep.include({path: '/path/#val'});
-					} finally {
-						finish();
-					}
+
+				Object.entries({'UUIDv4': '7cfad23f-f2d1-4ff4-a86c-93a52266f0ba', 'number': 38473}).forEach(([type, value]) => {
+					it(`normalizes ${type} path labels in ${protocol} requests`, async () => {
+						const {baseUrl, finish} = await createServer((req, res) => {
+							res.statusCode = 200;
+							res.end();
+						}, host);
+						try {
+							await requestUrl(`${baseUrl}/path/${value}`, {agent: wrapAgent(agent, metric)});
+							expect(getCounterValue(metric, {status: '200'}).labels).to.deep.include({path: '/path/#val'});
+						} finally {
+							finish();
+						}
+					});
+					it(`normalizes ${type} path labels in ${protocol} requests with query parameters`, async () => {
+						const {baseUrl, finish} = await createServer((req, res) => {
+							res.statusCode = 200;
+							res.end();
+						}, host);
+						try {
+							await requestUrl(`${baseUrl}/path/${value}?test`, {agent: wrapAgent(agent, metric)});
+							expect(getCounterValue(metric, {status: '200'}).labels).to.deep.include({path: '/path/#val'});
+						} finally {
+							finish();
+						}
+					});
 				});
 				it(`normalizes path labels in ${protocol} requests through normalizePath function`, async () => {
 					const {baseUrl, finish} = await createServer((req, res) => {

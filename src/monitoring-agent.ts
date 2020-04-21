@@ -28,7 +28,10 @@ const DEFAULT_URL_VALUE_PARSER = new UrlValueParser();
 const DEFAULT_WRAP_AGENT_OPTIONS: Required<WrapAgentOptions> = {
 	extraLabels: {},
 	normalizePath(req) {
-		return DEFAULT_URL_VALUE_PARSER.replacePathValues(req.path, '#val');
+		// Strip everything after a '?': We do not want to see query parameters here.
+		const queryIndex = req.path.indexOf('?');
+		const barePath = queryIndex === -1 ? req.path : req.path.substring(0, queryIndex);
+		return DEFAULT_URL_VALUE_PARSER.replacePathValues(barePath, '#val');
 	}
 };
 
