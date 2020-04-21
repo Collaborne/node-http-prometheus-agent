@@ -17,6 +17,7 @@ deploy:
   provider: npm
   email: npm@collaborne.com
   api_key:
+    secure: "LxXGE2eRAoAlFk/QEIeBWBLmy8Aj/ft2ar9ICJ5TqW9mjkeiAyx8zFeOO0P3obZ5erSqmTFOHPHJ/13ofmLVOCdV3lG+M0P5cZw5W2H/sqGsdaDeffpP1zwak1mce4m21h5Gn5sWIsmlU+CF1GKA8fFMou2dMCl6V6n/8prdsylixwyzJ+9zh7XVnwdz4CdBoYJr4NtrC7ETKaT8YUkhAIMpqKYV3xhlVoIgfxAm+p1UyFIgMgTOF1r2gF1XZcC9X9N6mounGL13kZLV1LRS/WpQYbKDJhxgfkse+AD/Zz8z3FiikYHBMqPkxx0zdBrCV4GZeb1mOKYuAs/OcnhM1I5OZz2WEfhwoVHisYIUj4trfv9ko92axkoF8mnEmPzmJpsUpA0Pz5YmT6BgtbsTA5KC9zwiWnv2McP9J4QI8jnFfoxounY9BsYM2ewme+s1nXmCEPohwaWAipQol3XK6xsUs7yra84nXVyG2U9LpvoQGGPQUYO8I9S/tf8K7bVy0DtdVf1Tv8DtcerQyy6TPhV15bHpuwTarPyg5StZ+6qzPEInfFP0N0J4S2dcpDKYTBCBS11ccpytMIRN/onmMZQQrVQh2tnic1OHspKh/NWwsaYRnP3mLoD+NWn5UN54cUIf1bssYvbLl18j2D4jDLR/0Ivu40FPalBAMOt00fg="
   on:
     tags: true
     condition: $(node -e 'console.log("v" + require("./package.json").version)') = ${TRAVIS_TAG}
