@@ -1,5 +1,5 @@
 {
-  "name": "nodejs-http-prometheus-agent",
+  "name": "node-http-prometheus-agent",
   "version": "0.1.0-0",
   "description": "Implementation of an http.Agent/https.Agent that exposes request metrics through prom-client",
   "main": "dist/monitoring-agent.js",
@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Collaborne/nodejs-http-prometheus-agent.git"
+    "url": "git+https://github.com/Collaborne/node-http-prometheus-agent.git"
   },
   "keywords": [
     "NodeJS",
@@ -26,9 +26,9 @@
   "author": "Andreas Kohn <andreas.kohn@gmail.com>",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/Collaborne/nodejs-http-prometheus-agent/issues"
+    "url": "https://github.com/Collaborne/node-http-prometheus-agent/issues"
   },
-  "homepage": "https://github.com/Collaborne/nodejs-http-prometheus-agent#readme",
+  "homepage": "https://github.com/Collaborne/node-http-prometheus-agent#readme",
   "dependencies": {
     "@log4js-node/log4js-api": "^1.0.2",
     "@types/node-forge": "^0.9.3",
