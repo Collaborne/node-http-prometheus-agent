@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc && tsc -p tsconfig.es6.json",
     "lint": "tslint -p . -c tslint.json *.ts",
-    "test": "env TS_NODE_FILES=true TS_NODE_CACHE=false nyc mocha"
+    "test": "env LOG4JS_CONFIG=test/log4js.json TS_NODE_FILES=true TS_NODE_CACHE=false nyc mocha"
   },
   "repository": {
     "type": "git",
