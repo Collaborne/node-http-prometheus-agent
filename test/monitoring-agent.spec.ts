@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import type { Suite } from 'mocha';
 import 'mocha';
 
 import type { IncomingMessage, RequestListener } from 'http';
@@ -120,6 +121,24 @@ const PROTOCOLS = [
 	},
 ];
 
+const FAMILY_EXAMPLES = {
+	'IPv6': '::1',
+	'IPv4': '127.0.0.1',
+};
+
+function travisAndIPv6(family: string) {
+	// Travis is odd when it comes to IPv6 addresses, so skip everything there.
+	return process.env.TRAVIS === 'true' && family === 'IPv6';
+}
+
+function skipIf(condition: boolean, title: string, fn: (this: Suite) => void) {
+	if (condition) {
+		describe.skip(title, fn);
+	} else {
+		describe(title, fn);
+	}
+}
+
 describe('monitoring-agent', () => {
 	let metric: Counter;
 	beforeEach(() => {
@@ -133,65 +152,66 @@ describe('monitoring-agent', () => {
 		register.clear();
 	});
 
-
-	['::1', '127.0.0.1'].forEach(host => {
-		PROTOCOLS.forEach(({protocol, request, agent, createServer}) => {
-			function requestUrl(url: string, options: RequestOptions = {}): Promise<IncomingMessage> {
-				return new Promise(resolve => {
-					const req = request(url, options, (res: IncomingMessage) => {
-						resolve(res);
+	Object.entries(FAMILY_EXAMPLES).forEach(([family, host]) => {
+		skipIf(travisAndIPv6(family), `${family} support (test host ${host})`, () => {
+			PROTOCOLS.forEach(({protocol, request, agent, createServer}) => {
+				function requestUrl(url: string, options: RequestOptions = {}): Promise<IncomingMessage> {
+					return new Promise(resolve => {
+						const req = request(url, options, (res: IncomingMessage) => {
+							resolve(res);
+						});
+						req.end();
 					});
-					req.end();
-				});
-			}
+				}
 
-			it(`intercepts successful ${protocol} requests (${host})`, async () => {
-				const {baseUrl, finish} = await createServer((req, res) => {
-					res.statusCode = 200;
-					res.end();
-				}, host);
-				try {
-					await requestUrl(baseUrl, {agent: wrapAgent(agent, metric)});
-					expect(getCounterValue(metric, {status: '200'}).value).to.be.equal(1);
-				} finally {
-					finish();
-				}
-			});
-			it(`intercepts failing ${protocol} requests (${host})`, async () => {
-				const {baseUrl, finish} = await createServer((req, res) => {
-					res.statusCode = 500;
-					res.end();
-				}, host);
-				try {
-					await requestUrl(baseUrl, {agent: wrapAgent(agent, metric)});
-					expect(getCounterValue(metric, {status: '500'}).value).to.be.equal(1);
-				} finally {
-					finish();
-				}
-			});
-			it(`adds path labels in ${protocol} requests (${host})`, async () => {
-				const {baseUrl, finish} = await createServer((req, res) => {
-					res.statusCode = 200;
-					res.end();
-				}, host);
-				try {
-					await requestUrl(`${baseUrl}/path`, {agent: wrapAgent(agent, metric)});
-					expect(getCounterValue(metric, {status: '200'}).labels).to.deep.include({path: '/path'});
-				} finally {
-					finish();
-				}
-			});
-			it(`adds extra labels in ${protocol} requests (${host})`, async () => {
-				const {baseUrl, finish} = await createServer((req, res) => {
-					res.statusCode = 200;
-					res.end();
-				}, host);
-				try {
-					await requestUrl(baseUrl, {agent: wrapAgent(agent, metric, {label1: 'dummy'})});
-					expect(getCounterValue(metric, {status: '200', label1: 'dummy'}).value).to.be.equal(1);
-				} finally {
-					finish();
-				}
+				it(`intercepts successful ${protocol} requests`, async () => {
+					const {baseUrl, finish} = await createServer((req, res) => {
+						res.statusCode = 200;
+						res.end();
+					}, host);
+					try {
+						await requestUrl(baseUrl, {agent: wrapAgent(agent, metric)});
+						expect(getCounterValue(metric, {status: '200'}).value).to.be.equal(1);
+					} finally {
+						finish();
+					}
+				});
+				it(`intercepts failing ${protocol} requests`, async () => {
+					const {baseUrl, finish} = await createServer((req, res) => {
+						res.statusCode = 500;
+						res.end();
+					}, host);
+					try {
+						await requestUrl(baseUrl, {agent: wrapAgent(agent, metric)});
+						expect(getCounterValue(metric, {status: '500'}).value).to.be.equal(1);
+					} finally {
+						finish();
+					}
+				});
+				it(`adds path labels in ${protocol} requests`, async () => {
+					const {baseUrl, finish} = await createServer((req, res) => {
+						res.statusCode = 200;
+						res.end();
+					}, host);
+					try {
+						await requestUrl(`${baseUrl}/path`, {agent: wrapAgent(agent, metric)});
+						expect(getCounterValue(metric, {status: '200'}).labels).to.deep.include({path: '/path'});
+					} finally {
+						finish();
+					}
+				});
+				it(`adds extra labels in ${protocol} requests`, async () => {
+					const {baseUrl, finish} = await createServer((req, res) => {
+						res.statusCode = 200;
+						res.end();
+					}, host);
+					try {
+						await requestUrl(baseUrl, {agent: wrapAgent(agent, metric, {label1: 'dummy'})});
+						expect(getCounterValue(metric, {status: '200', label1: 'dummy'}).value).to.be.equal(1);
+					} finally {
+						finish();
+					}
+				});
 			});
 		});
 	});
