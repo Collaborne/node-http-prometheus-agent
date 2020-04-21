@@ -11,7 +11,7 @@ import forge from 'node-forge';
 
 import { wrapAgent } from '../src/monitoring-agent';
 
-function createTestHttpsServer(handler: RequestListener): https.Server {
+function createTestHttpsServer(handler?: RequestListener): https.Server {
 	// Adapted from https://github.com/digitalbazaar/forge/blob/master/examples/create-cert.js
 	const keys = forge.pki.rsa.generateKeyPair(1024);
 	const cert = forge.pki.createCertificate();
@@ -77,19 +77,31 @@ function getCounterValue(metric: Counter, labels: labelValues = {}) {
 		.find((value: {labels: labelValues}) => Object.entries(labels).every(([k, v]) => value.labels[k] === v));
 }
 
-function mockServer<T extends http.Server>(protocol: string, createServer: (handler: RequestListener) => T): (handler: RequestListener) => [string, () => void] {
-	return (handler: RequestListener) => {
-		const server = createServer(handler);
-		const listener = server.listen();
-		const address = listener.address()!;
-		if (typeof address !== 'string') {
-			switch (address.family) {
-				case 'IPv4': return [`${protocol}//${address.address}:${address.port}`, () => server.close()];
-				case 'IPv6': return [`${protocol}//[${address.address}]:${address.port}`, () => server.close()];
-			}
-		}
-		// Likely a UNIX domain socket, and not what the caller wants.
-		throw new Error(`Unexpected address ${address}`);
+function mockServer<T extends http.Server>(protocol: string, createServer: (handler?: RequestListener) => T): (handler: RequestListener, host?: string) => Promise<{baseUrl: string, finish: () => void}> {
+	return (handler: RequestListener, host?: string) => {
+		return new Promise((resolve, reject) => {
+			const server = createServer(handler);
+			const listener = server.listen(0, host, () => {
+				const address = listener.address()!;
+				if (typeof address !== 'string') {
+					let baseUrl;
+					switch (address.family) {
+						case 'IPv4':
+							baseUrl = `${protocol}//${address.address}:${address.port}`;
+							break;
+						case 'IPv6':
+							baseUrl = `${protocol}//[${address.address}]:${address.port}`;
+							break;
+					}
+					if (baseUrl) {
+						resolve({baseUrl, finish: () => server.close()});
+						return;
+					}
+				}
+				// Likely a UNIX domain socket, and not what the caller wants.
+				reject(new Error(`Unexpected address ${address}`));
+			});
+		});
 	}
 }
 
@@ -121,63 +133,66 @@ describe('monitoring-agent', () => {
 		register.clear();
 	});
 
-	PROTOCOLS.forEach(({protocol, request, agent, createServer}) => {
-		function requestUrl(url: string, options: RequestOptions = {}): Promise<IncomingMessage> {
-			return new Promise(resolve => {
-				const req = request(url, options, (res: IncomingMessage) => {
-					resolve(res);
-				});
-				req.end();
-			});
-		}
 
-		it(`intercepts successful ${protocol} requests`, async () => {
-			const [address, finish] = createServer((req, res) => {
-				res.statusCode = 200;
-				res.end();
-			});
-			try {
-				await requestUrl(address, {agent: wrapAgent(agent, metric)});
-				expect(getCounterValue(metric, {status: '200'}).value).to.be.equal(1);
-			} finally {
-				finish();
+	['::1', '127.0.0.1'].forEach(host => {
+		PROTOCOLS.forEach(({protocol, request, agent, createServer}) => {
+			function requestUrl(url: string, options: RequestOptions = {}): Promise<IncomingMessage> {
+				return new Promise(resolve => {
+					const req = request(url, options, (res: IncomingMessage) => {
+						resolve(res);
+					});
+					req.end();
+				});
 			}
-		});
-		it(`intercepts failing ${protocol} requests`, async () => {
-			const [address, finish] = createServer((req, res) => {
-				res.statusCode = 500;
-				res.end();
+
+			it(`intercepts successful ${protocol} requests (${host})`, async () => {
+				const {baseUrl, finish} = await createServer((req, res) => {
+					res.statusCode = 200;
+					res.end();
+				}, host);
+				try {
+					await requestUrl(baseUrl, {agent: wrapAgent(agent, metric)});
+					expect(getCounterValue(metric, {status: '200'}).value).to.be.equal(1);
+				} finally {
+					finish();
+				}
 			});
-			try {
-				await requestUrl(address, {agent: wrapAgent(agent, metric)});
-				expect(getCounterValue(metric, {status: '500'}).value).to.be.equal(1);
-			} finally {
-				finish();
-			}
-		});
-		it(`adds path labels in ${protocol} requests`, async () => {
-			const [address, finish] = createServer((req, res) => {
-				res.statusCode = 200;
-				res.end();
+			it(`intercepts failing ${protocol} requests (${host})`, async () => {
+				const {baseUrl, finish} = await createServer((req, res) => {
+					res.statusCode = 500;
+					res.end();
+				}, host);
+				try {
+					await requestUrl(baseUrl, {agent: wrapAgent(agent, metric)});
+					expect(getCounterValue(metric, {status: '500'}).value).to.be.equal(1);
+				} finally {
+					finish();
+				}
 			});
-			try {
-				await requestUrl(`${address}/path`, {agent: wrapAgent(agent, metric)});
-				expect(getCounterValue(metric, {status: '200'}).labels).to.deep.include({path: '/path'});
-			} finally {
-				finish();
-			}
-		});
-		it(`adds extra labels in ${protocol} requests`, async () => {
-			const [address, finish] = createServer((req, res) => {
-				res.statusCode = 200;
-				res.end();
+			it(`adds path labels in ${protocol} requests (${host})`, async () => {
+				const {baseUrl, finish} = await createServer((req, res) => {
+					res.statusCode = 200;
+					res.end();
+				}, host);
+				try {
+					await requestUrl(`${baseUrl}/path`, {agent: wrapAgent(agent, metric)});
+					expect(getCounterValue(metric, {status: '200'}).labels).to.deep.include({path: '/path'});
+				} finally {
+					finish();
+				}
 			});
-			try {
-				await requestUrl(address, {agent: wrapAgent(agent, metric, {label1: 'dummy'})});
-				expect(getCounterValue(metric, {status: '200', label1: 'dummy'}).value).to.be.equal(1);
-			} finally {
-				finish();
-			}
+			it(`adds extra labels in ${protocol} requests (${host})`, async () => {
+				const {baseUrl, finish} = await createServer((req, res) => {
+					res.statusCode = 200;
+					res.end();
+				}, host);
+				try {
+					await requestUrl(baseUrl, {agent: wrapAgent(agent, metric, {label1: 'dummy'})});
+					expect(getCounterValue(metric, {status: '200', label1: 'dummy'}).value).to.be.equal(1);
+				} finally {
+					finish();
+				}
+			});
 		});
 	});
 });
