@@ -1,6 +1,6 @@
 {
   "name": "node-http-prometheus-agent",
-  "version": "0.3.0-1",
+  "version": "1.0.0",
   "description": "Implementation of an http.Agent/https.Agent that exposes request metrics through prom-client",
   "main": "dist/monitoring-agent.js",
   "module": "dist.es6/monitoring-agent.js",
