@@ -44,7 +44,7 @@
     "chai": "^4.2.0",
     "log4js": "^6.2.1",
     "mocha": "^7.1.1",
-    "node-forge": "^0.9.1",
+    "node-forge": "^0.10.0",
     "nyc": "^15.0.1",
     "prom-client": "^11.5.3",
     "source-map-support": "^0.5.17",
