@@ -31,7 +31,6 @@
   "homepage": "https://github.com/Collaborne/node-http-prometheus-agent#readme",
   "dependencies": {
     "@log4js-node/log4js-api": "^1.0.2",
-    "@types/node-forge": "^0.9.3",
     "url-value-parser": "^2.0.1"
   },
   "peerDependencies": {
@@ -41,10 +40,11 @@
     "@types/chai": "^4.2.11",
     "@types/mocha": "^7.0.2",
     "@types/node": "^13.13.1",
+    "@types/node-forge": "^0.9.5",
     "chai": "^4.2.0",
     "log4js": "^6.2.1",
     "mocha": "^7.1.1",
-    "node-forge": "^0.9.1",
+    "node-forge": "^0.10.0",
     "nyc": "^15.0.1",
     "prom-client": "^11.5.3",
     "source-map-support": "^0.5.17",
